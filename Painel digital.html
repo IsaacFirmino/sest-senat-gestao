@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel SEST SENAT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white min-h-screen flex items-center justify-center p-8">
+    
+    <div class="text-center">
+        <!-- Título -->
+        <h1 class="text-6xl font-black mb-16">PAINEL DE ATENDIMENTO</h1>
+        
+        <!-- Senha Atual -->
+        <div class="bg-gray-900 border-8 border-blue-600 rounded-[5rem] p-16 mb-12">
+            <div id="senha" class="text-[12rem] font-black text-yellow-400 leading-none">---</div>
+            <div id="nome" class="text-5xl font-bold mt-8">AGUARDANDO</div>
+            <div id="sala" class="text-4xl bg-orange-600 inline-block px-16 py-4 rounded-full mt-8">SALA</div>
+        </div>
+        
+        <!-- Instrução -->
+        <p class="text-gray-500 text-xl" id="status">Aguardando primeira senha...</p>
+    </div>
+
+    <script>
+        // PEGAR DADOS DA URL
+        function getDadosDaUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                senha: params.get('senha'),
+                nome: params.get('nome'),
+                sala: params.get('sala')
+            };
+        }
+
+        // ATUALIZAR TELA
+        function atualizarTela() {
+            const dados = getDadosDaUrl();
+            
+            if (dados.senha) {
+                document.getElementById('senha').innerText = dados.senha;
+                document.getElementById('nome').innerText = dados.nome || "CLIENTE";
+                document.getElementById('sala').innerText = dados.sala || "SALA 1";
+                document.getElementById('status').innerText = "Última atualização: " + new Date().toLocaleTimeString();
+                
+                // Tenta falar (funciona no PC, no celular precisa de toque)
+                try {
+                    const msg = new SpeechSynthesisUtterance(`Senha ${dados.senha}. ${dados.nome}. ${dados.sala}`);
+                    window.speechSynthesis.speak(msg);
+                } catch(e) {}
+                
+                // Remove os parâmetros da URL (para não repetir)
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // VERIFICAR A CADA 2 SEGUNDOS SE HOUVE MUDANÇA
+        setInterval(() => {
+            atualizarTela();
+        }, 2000);
+
+        // ATUALIZAR QUANDO A PÁGINA CARREGAR
+        window.onload = atualizarTela;
+    </script>
+</body>
+</html>
