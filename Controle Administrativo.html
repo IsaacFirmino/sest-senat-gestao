@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Fila - SEST SENAT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-100 p-8 font-sans">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+        <!-- Header -->
+        <div class="bg-green-700 text-white p-6 rounded-2xl flex justify-between items-center shadow-lg">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">Gestão de Atendimento</h1>
+                <p class="text-green-100 opacity-80">Monitoramento em tempo real</p>
+            </div>
+            <button onclick="zerarSistema()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> ZERAR TUDO
+            </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-4">
+                <div class="bg-blue-100 p-4 rounded-xl text-blue-600">
+                    <i data-lucide="users" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <p class="text-gray-500 font-bold uppercase text-[10px] tracking-widest">Total de Senhas</p>
+                    <h2 id="totalSenhas" class="text-4xl font-black text-gray-800">0</h2>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-4">
+                <div class="bg-orange-100 p-4 rounded-xl text-orange-600">
+                    <i data-lucide="megaphone" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <p class="text-gray-500 font-bold uppercase text-[10px] tracking-widest">Último Chamado</p>
+                    <h2 id="ultimaSenha" class="text-4xl font-black text-blue-900">---</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Histórico Recente -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <h3 class="font-bold text-gray-700 flex items-center gap-2">
+                    <i data-lucide="list" class="w-5 h-5"></i> Histórico de Chamadas
+                </h3>
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Últimos 10 registros</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-3">Horário</th>
+                            <th class="px-6 py-3">CPF</th>
+                            <th class="px-6 py-3">Senha</th>
+                            <th class="px-6 py-3">Local/Sala</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaCorpo" class="text-gray-600 divide-y divide-gray-50">
+                        <!-- Conteúdo injetado via JS -->
+                        <tr>
+                            <td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Nenhum atendimento registrado.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para mascarar o CPF: mostra apenas os 3 primeiros e 2 últimos dígitos
+        function mascararCPF(cpf) {
+            if (!cpf) return "***.***.***-**";
+            
+            // Remove caracteres não numéricos
+            const numeros = cpf.replace(/\D/g, '');
+            
+            // Verifica se tem pelo menos 11 dígitos
+            if (numeros.length < 11) return cpf;
+            
+            // Pega os 3 primeiros dígitos
+            const primeiros = numeros.substring(0, 3);
+            
+            // Pega os 2 últimos dígitos
+            const ultimos = numeros.substring(9, 11);
+            
+            // Retorna o CPF mascarado: 3 primeiros, asteriscos, 2 últimos
+            return `${primeiros}.***.***-${ultimos}`;
+        }
+
+        function updateStats() {
+            const total = localStorage.getItem("sest_contador") || "0";
+            const ultima = localStorage.getItem("sest_ultima_senha") || "---";
+            const historico = JSON.parse(localStorage.getItem("sest_historico") || "[]");
+
+            document.getElementById('totalSenhas').innerText = total;
+            document.getElementById('ultimaSenha').innerText = ultima;
+
+            // Atualiza a Tabela
+            const corpo = document.getElementById('tabelaCorpo');
+            if (historico.length > 0) {
+                corpo.innerHTML = historico.map(item => `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 text-xs font-mono">${item.hora}</td>
+                        <td class="px-6 py-4 font-mono text-gray-800">
+                            ${mascararCPF(item.cpf)}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-bold text-sm border border-blue-100">
+                                ${item.senha}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="bg-orange-50 text-orange-700 px-2 py-1 rounded-md font-bold text-xs uppercase border border-orange-100">
+                                ${item.sala}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                corpo.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Nenhum atendimento registrado.</td></tr>`;
+            }
+        }
+
+        function zerarSistema() {
+            if(confirm("Deseja limpar todos os dados da fila e histórico?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        window.onload = () => {
+            lucide.createIcons();
+            updateStats();
+            setInterval(() => {
+                updateStats();
+                lucide.createIcons(); 
+            }, 2000);
+        };
+    </script>
+</body>
+</html>
